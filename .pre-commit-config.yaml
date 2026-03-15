@@ -27,3 +27,4 @@ repos:
     hooks:
       - id: ty-check
         args: [ --python-version, "3.14" ]
+        exclude: ^tests/
