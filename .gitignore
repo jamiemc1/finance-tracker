@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Financial data — never commit
+*.txt
+*.xls
+*.csv
+*.db
+data/
+
+# Vim
+*.swp
+*.swo
+
+# OS
+.DS_Store
