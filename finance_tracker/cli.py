@@ -10,6 +10,13 @@ from finance_tracker.database import DatabaseClient
 from finance_tracker.ingest import parse_santander_txt
 from finance_tracker.models import Rule, Transaction
 from finance_tracker.rules import apply_rules, create_rule_from_description
+from finance_tracker.visualise import (
+    plot_budget_pie,
+    plot_category_summary,
+    plot_monthly_buckets,
+    plot_monthly_trends,
+    plot_weekly_breakdown,
+)
 
 app = typer.Typer(name="finance", help="Personal finance tracker")
 console = Console()
@@ -197,6 +204,62 @@ def budget() -> None:
         table.add_section()
         table.add_row("[bold]Total[/bold]", f"[bold]£{total_spending:.2f}[/bold]", "", "")
         console.print(table)
+
+
+@app.command()
+def trends(
+    category: str = typer.Option(None, help="Filter to a specific category (e.g. 'GROCERIES')"),
+    save: str = typer.Option(None, help="Save chart to file instead of displaying"),
+) -> None:
+    """Show monthly spending trend lines."""
+    with DatabaseClient.create() as database:
+        transactions = database.select_all(Transaction)
+
+        if not transactions:
+            console.print("[yellow]No transactions imported yet.[/yellow]")
+            raise typer.Exit()
+
+        category_filter = None
+        if category:
+            try:
+                category_filter = CategoryType[category.upper()]
+            except KeyError:
+                console.print(f"[red]Unknown category: {category}[/red]")
+                raise typer.Exit(code=1) from None
+
+        plot_monthly_trends(transactions, category=category_filter, save_path=save)
+
+
+@app.command()
+def plot(
+    chart: str = typer.Argument(..., help="Chart type: categories, budget, buckets, weekly"),
+    weeks: int = typer.Option(12, help="Number of weeks for weekly chart"),
+    save: str = typer.Option(None, help="Save chart to file instead of displaying"),
+) -> None:
+    """Generate spending visualisations."""
+    with DatabaseClient.create() as database:
+        transactions = database.select_all(Transaction)
+
+        if not transactions:
+            console.print("[yellow]No transactions imported yet.[/yellow]")
+            raise typer.Exit()
+
+        chart_functions = {
+            "categories": lambda: plot_category_summary(transactions, save_path=save),
+            "budget": lambda: plot_budget_pie(transactions, save_path=save),
+            "buckets": lambda: plot_monthly_buckets(transactions, save_path=save),
+            "weekly": lambda: plot_weekly_breakdown(
+                transactions, last_n_weeks=weeks, save_path=save
+            ),
+        }
+
+        if chart not in chart_functions:
+            console.print(
+                f"[red]Unknown chart type: {chart}[/red]\nAvailable: {', '.join(chart_functions)}"
+            )
+            raise typer.Exit(code=1)
+
+        chart_functions[chart]()
 
 
 @app.command()
