@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from sqlalchemy import BinaryExpression
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, SQLModel, create_engine, select
 
 DATA_DIR = Path.home() / ".finance-tracker"
@@ -36,6 +37,16 @@ class DatabaseClient:
     def add(self, obj: SQLModel) -> None:
         self._session.add(obj)
         self._session.flush()
+
+    def add_if_new(self, obj: SQLModel) -> bool:
+        """Add object if it doesn't violate a unique constraint. Returns True if inserted."""
+        try:
+            with self._session.begin_nested():
+                self._session.add(obj)
+                self._session.flush()
+            return True
+        except IntegrityError:
+            return False
 
     def add_all(self, objects: Sequence[SQLModel]) -> None:
         self._session.add_all(objects)

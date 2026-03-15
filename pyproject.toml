@@ -36,6 +36,9 @@ src = ["finance_tracker"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+"finance_tracker/cli.py" = ["B008"]
+
 [tool.ty.environment]
 python = ".venv"
 
