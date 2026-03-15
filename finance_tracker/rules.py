@@ -65,7 +65,7 @@ def _extract_pattern(description: str) -> str:
     for prefix in prefixes_to_strip:
         cleaned = re.sub(f"^{prefix}", "", cleaned, flags=re.IGNORECASE)
 
-    reference_pattern = r"\s+(REFERENCE|REF|MANDATE NO)\s+.*$"
+    reference_pattern = r"[,\s]+(REFERENCE|REF|MANDATE NO)\s+.*$"
     cleaned = re.sub(reference_pattern, "", cleaned, flags=re.IGNORECASE)
 
-    return cleaned.strip()
+    return cleaned.strip().rstrip(",")
