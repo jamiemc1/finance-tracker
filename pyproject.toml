@@ -3,7 +3,7 @@ name = "finance-tracker"
 version = "0.1.0"
 description = "Personal finance tracker — transaction categorisation, spending analysis and budgeting"
 authors = [
-    {name = "Jamie McMillan",email = "jamie.mcmillan9@gmail.com"}
+    {name = "Jamie McMillan", email = "jamie.mcmillan9@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -18,11 +18,34 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=6.0",
+    "pre-commit>=4.0",
+    "ruff>=0.13",
+    "bandit>=1.8",
 ]
 
-[tool.poetry]
-packages = [{include = "finance_tracker", from = "src"}]
+[project.scripts]
+finance = "finance_tracker.cli:app"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    "pre-commit>=4.0",
+    "ruff>=0.13",
+    "bandit>=1.8",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/finance_tracker"]

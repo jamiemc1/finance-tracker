@@ -1,0 +1,36 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: check-yaml
+      - id: trailing-whitespace
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.13.1"
+    hooks:
+      - id: ruff
+        args: [ --fix, --exit-non-zero-on-fix ]
+      - id: ruff-format
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.8.6"
+    hooks:
+      - id: bandit
+        language_version: python3
+        exclude: (test.*\.py|conftest\.py)$
+        args:
+          - -s
+          - B404,B603,B310
+  - repo: https://github.com/python-poetry/poetry
+    rev: "2.2.1"
+    hooks:
+      - id: poetry-check
+  - repo: local
+    hooks:
+      - id: mypy
+        name: Mypy
+        entry: poetry run mypy
+        language: system
+        exclude: .*(test.*)\/
+        files: \.py$
