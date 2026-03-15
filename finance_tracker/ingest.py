@@ -1,25 +1,13 @@
 import hashlib
 import re
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from finance_tracker.categories import CategoryType
-
-
-@dataclass
-class Transaction:
-    transaction_date: date
-    description: str
-    amount: float
-    balance: float
-    account: str
-    category: CategoryType
-    transaction_hash: str
+from finance_tracker.models import Transaction
 
 
 def parse_santander_txt(file_path: Path, account: str) -> list[Transaction]:
-    """Parse a Santander TXT statement export into transactions."""
+    """Parse a Santander TXT statement export into Transaction model instances."""
     content = file_path.read_text(encoding="iso-8859-1")
     lines = content.splitlines()
 
@@ -29,10 +17,7 @@ def parse_santander_txt(file_path: Path, account: str) -> list[Transaction]:
     for line in lines:
         stripped = line.strip()
 
-        if stripped.startswith("From:") or stripped.startswith("Account:"):
-            continue
-
-        if stripped.startswith("Arranged overdraft"):
+        if stripped.startswith(("From:", "Account:", "Arranged overdraft")):
             continue
 
         field_match = re.match(r"^(Date|Description|Amount|Balance):\s*(.+)", stripped)
@@ -65,7 +50,6 @@ def _build_transaction(block: dict[str, str], account: str) -> Transaction | Non
     description = block["Description"]
     amount = _parse_amount(block["Amount"])
     balance = _parse_amount(block["Balance"])
-    category = CategoryType.UNCATEGORISED
     transaction_hash = _compute_hash(transaction_date, description, amount, balance)
 
     return Transaction(
@@ -74,7 +58,6 @@ def _build_transaction(block: dict[str, str], account: str) -> Transaction | Non
         amount=amount,
         balance=balance,
         account=account,
-        category=category,
         transaction_hash=transaction_hash,
     )
 
@@ -90,8 +73,6 @@ def _parse_amount(raw: str) -> float:
     return float(cleaned)
 
 
-def _compute_hash(
-    transaction_date: date, description: str, amount: float, balance: float
-) -> str:
+def _compute_hash(transaction_date: date, description: str, amount: float, balance: float) -> str:
     raw = f"{transaction_date.isoformat()}|{description}|{amount:.2f}|{balance:.2f}"
     return hashlib.sha256(raw.encode()).hexdigest()
