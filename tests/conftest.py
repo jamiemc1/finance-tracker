@@ -135,6 +135,21 @@ def sample_transactions() -> list[Transaction]:
             transaction_date=date(2026, 1, 20),
             category=CategoryType.HOLIDAYS_TRAVEL,
         ),
+        make_transaction(
+            description="TRANSFER TO SAVINGS ACCOUNT",
+            amount=-500.00,
+            balance=-1788.29,
+            transaction_date=date(2026, 2, 1),
+            category=CategoryType.TRANSFER,
+        ),
+        make_transaction(
+            description="TRANSFER FROM CURRENT ACCOUNT",
+            amount=500.00,
+            balance=500.00,
+            account="Savings",
+            transaction_date=date(2026, 2, 1),
+            category=CategoryType.TRANSFER,
+        ),
     ]
 
 

@@ -41,7 +41,7 @@ class TestSelectWhere:
 
     def test_filters_by_account(self, populated_database: DatabaseClient):
         results = populated_database.select_where(Transaction, Transaction.account == "Everyday")
-        assert len(results) == 11
+        assert len(results) == 12
 
     def test_returns_empty_for_no_match(self, populated_database: DatabaseClient):
         results = populated_database.select_where(Transaction, Transaction.account == "Nonexistent")
@@ -77,7 +77,7 @@ class TestSelectOneOrNone:
 class TestClearTable:
     def test_removes_all_rows(self, populated_database: DatabaseClient):
         count = populated_database.clear_table(Transaction)
-        assert count == 11
+        assert count == 13
         assert populated_database.count(Transaction) == 0
 
     def test_does_not_affect_other_tables(self, database_with_rules: DatabaseClient):

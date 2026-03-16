@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from finance_tracker.categories import CategoryType, spending_categories
+from finance_tracker.categories import SPENDING_BUCKETS, CategoryType, spending_categories
 from finance_tracker.database import DatabaseClient
 from finance_tracker.ingest import parse_santander_txt
 from finance_tracker.models import Rule, Transaction
@@ -140,6 +140,8 @@ def summary() -> None:
         spending = {}
         for transaction in transactions:
             if transaction.amount >= 0:
+                continue
+            if transaction.category.bucket not in SPENDING_BUCKETS:
                 continue
             category = transaction.category
             spending[category] = spending.get(category, 0.0) + abs(transaction.amount)

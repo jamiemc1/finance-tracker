@@ -13,6 +13,8 @@ def spending_by_category(
     for transaction in transactions:
         if transaction.amount >= 0:
             continue
+        if transaction.category.bucket not in SPENDING_BUCKETS:
+            continue
         totals[transaction.category] += abs(transaction.amount)
     return dict(sorted(totals.items(), key=lambda item: item[1], reverse=True))
 
@@ -37,6 +39,8 @@ def monthly_spending(
     monthly: dict[str, dict[CategoryType, float]] = defaultdict(lambda: defaultdict(float))
     for transaction in transactions:
         if transaction.amount >= 0:
+            continue
+        if transaction.category.bucket not in SPENDING_BUCKETS:
             continue
         month_key = transaction.transaction_date.strftime("%Y-%m")
         monthly[month_key][transaction.category] += abs(transaction.amount)
@@ -67,6 +71,8 @@ def weekly_spending(
     for transaction in transactions:
         if transaction.amount >= 0:
             continue
+        if transaction.category.bucket not in SPENDING_BUCKETS:
+            continue
         week_key = transaction.transaction_date.strftime("%G-W%V")
         weekly[week_key][transaction.category] += abs(transaction.amount)
 
@@ -78,11 +84,17 @@ def weekly_spending(
 
 
 def total_income(transactions: Sequence[Transaction]) -> float:
-    return sum(t.amount for t in transactions if t.amount > 0)
+    return sum(
+        t.amount for t in transactions if t.amount > 0 and t.category != CategoryType.TRANSFER
+    )
 
 
 def total_spending(transactions: Sequence[Transaction]) -> float:
-    return sum(abs(t.amount) for t in transactions if t.amount < 0)
+    return sum(
+        abs(t.amount)
+        for t in transactions
+        if t.amount < 0 and t.category.bucket in SPENDING_BUCKETS
+    )
 
 
 def date_range(transactions: Sequence[Transaction]) -> tuple[date, date] | None:

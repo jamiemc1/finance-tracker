@@ -75,6 +75,37 @@ class TestTotals:
         assert abs(result - expected) < 0.01
 
 
+class TestTransferExclusion:
+    def test_transfers_excluded_from_spending_by_category(self, sample_transactions):
+        result = spending_by_category(sample_transactions)
+        assert CategoryType.TRANSFER not in result
+
+    def test_transfers_excluded_from_total_spending(self, sample_transactions):
+        result = total_spending(sample_transactions)
+        expected_without_transfer = (
+            85.00 + 67.43 + 18.99 + 15.99 + 55.00 + 92.17 + 45.50 + 29.99 + 200.00 + 350.00
+        )
+        assert abs(result - expected_without_transfer) < 0.01
+
+    def test_transfers_excluded_from_total_income(self, sample_transactions):
+        result = total_income(sample_transactions)
+        assert result == 2500.00
+
+    def test_transfers_excluded_from_monthly_spending(self, sample_transactions):
+        result = monthly_spending(sample_transactions)
+        for month_data in result.values():
+            assert CategoryType.TRANSFER not in month_data
+
+    def test_transfers_excluded_from_weekly_spending(self, sample_transactions):
+        result = weekly_spending(sample_transactions)
+        for week_data in result.values():
+            assert CategoryType.TRANSFER not in week_data
+
+    def test_transfers_excluded_from_spending_by_bucket(self, sample_transactions):
+        result = spending_by_bucket(sample_transactions)
+        assert Bucket.EXCLUDED not in result
+
+
 class TestDateRange:
     def test_returns_min_and_max(self, sample_transactions: list[Transaction]):
         result = date_range(sample_transactions)
