@@ -80,6 +80,9 @@ SEED_RULES: list[tuple[str, CategoryType]] = [
     # Healthcare
     ("NHS", CategoryType.HEALTHCARE),
     ("BOOTS PHARM", CategoryType.HEALTHCARE),
+    # Transfers
+    ("REGULAR TRANSFER FROM", CategoryType.TRANSFER),
+    ("REGULAR TRANSFER TO", CategoryType.TRANSFER),
 ]
 
 
