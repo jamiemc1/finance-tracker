@@ -79,6 +79,9 @@ def categorise() -> None:
         if uncategorised:
             matched, _ = apply_rules(database, uncategorised)
             if matched:
+                for matched_transaction in uncategorised:
+                    if matched_transaction.category != CategoryType.UNCATEGORISED:
+                        database.add(matched_transaction)
                 console.print(f"[green]Auto-categorised {matched} transactions from rules[/green]")
                 uncategorised = [
                     t for t in uncategorised if t.category == CategoryType.UNCATEGORISED
@@ -125,7 +128,11 @@ def categorise() -> None:
             console.print(f"  [dim]Rule: '{pattern}' → {selected_category.display_name}[/dim]")
             if Confirm.ask("Create this rule?", default=False):
                 create_rule_from_description(database, transaction.description, selected_category)
-                matched, _ = apply_rules(database, uncategorised)
+                remaining = [t for t in uncategorised if t.category == CategoryType.UNCATEGORISED]
+                matched, _ = apply_rules(database, remaining)
+                for matched_transaction in remaining:
+                    if matched_transaction.category != CategoryType.UNCATEGORISED:
+                        database.add(matched_transaction)
                 if matched:
                     console.print(f"  [dim]Rule saved — auto-categorised {matched} more[/dim]")
                 else:
