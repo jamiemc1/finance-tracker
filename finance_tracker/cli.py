@@ -92,6 +92,8 @@ def categorise() -> None:
 
         category_list = list(CategoryType)
         for transaction in uncategorised:
+            if transaction.category != CategoryType.UNCATEGORISED:
+                continue
             _display_transaction(transaction)
             _display_category_menu(category_list)
 
@@ -123,7 +125,11 @@ def categorise() -> None:
             console.print(f"  [dim]Rule: '{pattern}' → {selected_category.display_name}[/dim]")
             if Confirm.ask("Create this rule?", default=True):
                 create_rule_from_description(database, transaction.description, selected_category)
-                console.print("  [dim]Rule saved[/dim]")
+                matched, _ = apply_rules(database, uncategorised)
+                if matched:
+                    console.print(f"  [dim]Rule saved — auto-categorised {matched} more[/dim]")
+                else:
+                    console.print("  [dim]Rule saved[/dim]")
 
             console.print()
 
