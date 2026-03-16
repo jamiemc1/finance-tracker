@@ -1,7 +1,7 @@
 from finance_tracker.categories import CategoryType
 from finance_tracker.database import DatabaseClient
 from finance_tracker.models import Rule
-from finance_tracker.rules import _extract_pattern, apply_rules, create_rule_from_description
+from finance_tracker.rules import apply_rules, create_rule_from_description, extract_pattern
 
 from tests.conftest import make_rule, make_transaction
 
@@ -64,39 +64,39 @@ class TestApplyRules:
 
 class TestExtractPattern:
     def test_strips_direct_debit_prefix(self):
-        pattern = _extract_pattern("DIRECT DEBIT PAYMENT TO BRITISH GAS, MANDATE NO 0001")
+        pattern = extract_pattern("DIRECT DEBIT PAYMENT TO BRITISH GAS, MANDATE NO 0001")
         assert pattern == "BRITISH GAS"
 
     def test_strips_trailing_comma_before_mandate(self):
-        pattern = _extract_pattern(
+        pattern = extract_pattern(
             "DIRECT DEBIT PAYMENT TO PAYPAL PAYMENT REF 5Z722227M58B8, MANDATE NO 0006"
         )
         assert "," not in pattern
 
     def test_strips_card_payment_prefix(self):
-        pattern = _extract_pattern("CARD PAYMENT TO TESCO STORES 2345")
+        pattern = extract_pattern("CARD PAYMENT TO TESCO STORES 2345")
         assert pattern == "TESCO STORES 2345"
 
     def test_strips_bill_payment_prefix_and_reference(self):
-        pattern = _extract_pattern(
+        pattern = extract_pattern(
             "BILL PAYMENT VIA FASTER PAYMENT TO EE LIMITED REFERENCE 07700123456"
         )
         assert pattern == "EE LIMITED"
 
     def test_strips_transfer_prefix(self):
-        pattern = _extract_pattern("TRANSFER FROM JAMIE LUKE MCMILLAN")
+        pattern = extract_pattern("TRANSFER FROM JAMIE LUKE MCMILLAN")
         assert pattern == "JAMIE LUKE MCMILLAN"
 
     def test_strips_square_prefix(self):
-        pattern = _extract_pattern("SQ *THE COFFEE HOUSE")
+        pattern = extract_pattern("SQ *THE COFFEE HOUSE")
         assert pattern == "THE COFFEE HOUSE"
 
     def test_strips_sumup_prefix(self):
-        pattern = _extract_pattern("SUMUP *JOES BARBERS")
+        pattern = extract_pattern("SUMUP *JOES BARBERS")
         assert pattern == "JOES BARBERS"
 
     def test_preserves_simple_description(self):
-        pattern = _extract_pattern("GREGGS")
+        pattern = extract_pattern("GREGGS")
         assert pattern == "GREGGS"
 
 

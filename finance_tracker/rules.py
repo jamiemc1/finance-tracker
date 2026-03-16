@@ -41,13 +41,13 @@ def create_rule_from_description(
     category: CategoryType,
 ) -> Rule:
     """Extract a keyword pattern from a description and save as a rule."""
-    pattern = _extract_pattern(description)
+    pattern = extract_pattern(description)
     rule = Rule(pattern=pattern, category=category, source="manual")
     database.add(rule)
     return rule
 
 
-def _extract_pattern(description: str) -> str:
+def extract_pattern(description: str) -> str:
     """Extract the most meaningful part of a transaction description for reuse as a rule.
 
     Strips common prefixes like DIRECT DEBIT PAYMENT TO, BILL PAYMENT VIA FASTER PAYMENT TO,

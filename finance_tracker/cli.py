@@ -9,7 +9,7 @@ from finance_tracker.categories import SPENDING_BUCKETS, CategoryType, spending_
 from finance_tracker.database import DatabaseClient
 from finance_tracker.ingest import parse_santander_txt
 from finance_tracker.models import Rule, Transaction
-from finance_tracker.rules import apply_rules, create_rule_from_description
+from finance_tracker.rules import apply_rules, create_rule_from_description, extract_pattern
 from finance_tracker.visualise import (
     plot_budget_pie,
     plot_category_summary,
@@ -114,13 +114,11 @@ def categorise() -> None:
             transaction.category = selected_category
             database.add(transaction)
 
-            if Confirm.ask("Create rule for similar transactions?", default=True):
-                rule = create_rule_from_description(
-                    database, transaction.description, selected_category
-                )
-                console.print(
-                    f"  [dim]Rule saved: '{rule.pattern}' → {selected_category.display_name}[/dim]"
-                )
+            pattern = extract_pattern(transaction.description)
+            console.print(f"  [dim]Rule: '{pattern}' → {selected_category.display_name}[/dim]")
+            if Confirm.ask("Create this rule?", default=True):
+                create_rule_from_description(database, transaction.description, selected_category)
+                console.print("  [dim]Rule saved[/dim]")
 
             console.print()
 
@@ -324,7 +322,8 @@ def _display_category_menu(categories: list[CategoryType]) -> None:
     spending = spending_categories()
     console.print()
     for index, category in enumerate(categories, 1):
-        marker = "  " if category in spending else "[dim]"
-        suffix = "[/dim]" if category not in spending else ""
-        console.print(f"  {marker}{index:2d}. {category.display_name}{suffix}")
+        if category in spending:
+            console.print(f"    {index:2d}. {category.display_name}")
+        else:
+            console.print(f"    [dim]{index:2d}. {category.display_name}[/dim]")
     console.print()
