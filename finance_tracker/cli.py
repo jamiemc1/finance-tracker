@@ -96,13 +96,18 @@ def categorise() -> None:
             _display_category_menu(category_list)
 
             choice = Prompt.ask(
-                "Category number (or 's' to skip, 'q' to quit)",
+                "Category number (or 's' to skip, 'x' to ignore, 'q' to quit)",
                 default="s",
             )
 
             if choice.lower() == "q":
                 break
             if choice.lower() == "s":
+                continue
+            if choice.lower() == "x":
+                transaction.category = CategoryType.IGNORED
+                database.add(transaction)
+                console.print("  [dim]Ignored[/dim]\n")
                 continue
 
             try:

@@ -29,6 +29,7 @@ class CategoryType(Enum):
     DEBT_REPAYMENT = ("Debt Repayment", Bucket.SAVINGS)
     INCOME = ("Income", Bucket.EXCLUDED)
     TRANSFER = ("Transfer", Bucket.EXCLUDED)
+    IGNORED = ("Ignored", Bucket.EXCLUDED)
     UNCATEGORISED = ("Uncategorised", Bucket.EXCLUDED)
 
     def __init__(self, display_name: str, bucket: Bucket) -> None:

@@ -43,6 +43,21 @@ class TestSelectWhere:
         results = populated_database.select_where(Transaction, Transaction.account == "Everyday")
         assert len(results) == 12
 
+    def test_ignored_excluded_from_uncategorised(self, database: DatabaseClient):
+        database.add(make_transaction(description="MYSTERY PAYMENT", transaction_hash="h1"))
+        database.add(
+            make_transaction(
+                description="OLD PAYPAL",
+                category=CategoryType.IGNORED,
+                transaction_hash="h2",
+            )
+        )
+        uncategorised = database.select_where(
+            Transaction, Transaction.category == CategoryType.UNCATEGORISED
+        )
+        assert len(uncategorised) == 1
+        assert uncategorised[0].description == "MYSTERY PAYMENT"
+
     def test_returns_empty_for_no_match(self, populated_database: DatabaseClient):
         results = populated_database.select_where(Transaction, Transaction.account == "Nonexistent")
         assert len(results) == 0
