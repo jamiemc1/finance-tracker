@@ -82,6 +82,8 @@ SEED_RULES: list[tuple[str, CategoryType]] = [
     ("BOOTS PHARM", CategoryType.HEALTHCARE),
     # Income
     ("INTEREST PAID", CategoryType.INCOME),
+    # Ignored
+    ("CASH WITHDRAWAL", CategoryType.IGNORED),
     # Transfers
     ("REGULAR TRANSFER FROM", CategoryType.TRANSFER),
     ("REGULAR TRANSFER TO", CategoryType.TRANSFER),
