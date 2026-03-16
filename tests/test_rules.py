@@ -87,6 +87,14 @@ class TestExtractPattern:
         pattern = _extract_pattern("TRANSFER FROM JAMIE LUKE MCMILLAN")
         assert pattern == "JAMIE LUKE MCMILLAN"
 
+    def test_strips_square_prefix(self):
+        pattern = _extract_pattern("SQ *THE COFFEE HOUSE")
+        assert pattern == "THE COFFEE HOUSE"
+
+    def test_strips_sumup_prefix(self):
+        pattern = _extract_pattern("SUMUP *JOES BARBERS")
+        assert pattern == "JOES BARBERS"
+
     def test_preserves_simple_description(self):
         pattern = _extract_pattern("GREGGS")
         assert pattern == "GREGGS"

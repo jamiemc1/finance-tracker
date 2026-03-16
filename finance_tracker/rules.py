@@ -60,6 +60,8 @@ def _extract_pattern(description: str) -> str:
         r"TRANSFER FROM\s+",
         r"TRANSFER TO\s+",
         r"STANDING ORDER TO\s+",
+        r"SQ\s*\*\s*",
+        r"SUMUP\s*\*\s*",
     ]
     cleaned = description.strip()
     for prefix in prefixes_to_strip:
