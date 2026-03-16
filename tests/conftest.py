@@ -59,7 +59,7 @@ def sample_transactions() -> list[Transaction]:
     """A representative set of transactions spanning categories and dates."""
     return [
         make_transaction(
-            description="TRANSFER FROM JAMIE LUKE MCMILLAN",
+            description="TRANSFER FROM JOHN A SMITH",
             amount=2500.00,
             balance=3200.50,
             transaction_date=date(2026, 2, 28),
