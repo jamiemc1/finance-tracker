@@ -23,6 +23,8 @@ class CategoryType(Enum):
     SUBSCRIPTIONS = ("Subscriptions", Bucket.WANT)
     HOLIDAYS_TRAVEL = ("Holidays & Travel", Bucket.WANT)
     GIFTS_CHARITY = ("Gifts & Charity", Bucket.WANT)
+    PETS = ("Pets", Bucket.WANT)
+    PERSONAL_BUSINESS = ("Personal Business", Bucket.NEED)
     SAVINGS_INVESTMENTS = ("Savings & Investments", Bucket.SAVINGS)
     DEBT_REPAYMENT = ("Debt Repayment", Bucket.SAVINGS)
     INCOME = ("Income", Bucket.EXCLUDED)
