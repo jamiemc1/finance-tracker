@@ -70,4 +70,7 @@ def extract_pattern(description: str) -> str:
     reference_pattern = r"[,\s]+(REFERENCE|REF|MANDATE NO)\s+.*$"
     cleaned = re.sub(reference_pattern, "", cleaned, flags=re.IGNORECASE)
 
+    fx_pattern = r"[,\s]+[\d.]+\s*GBP,\s*RATE\s+[\d./]+GBP\s+ON\s+[\d-]+$"
+    cleaned = re.sub(fx_pattern, "", cleaned, flags=re.IGNORECASE)
+
     return cleaned.strip().rstrip(",")

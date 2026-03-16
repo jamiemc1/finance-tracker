@@ -95,6 +95,14 @@ class TestExtractPattern:
         pattern = extract_pattern("SUMUP *JOES BARBERS")
         assert pattern == "JOES BARBERS"
 
+    def test_strips_gbp_fx_suffix(self):
+        pattern = extract_pattern("TOOLSTATION LTD,12.99 GBP, RATE 1.00/GBP ON 01-01-2025")
+        assert pattern == "TOOLSTATION LTD"
+
+    def test_strips_gbp_fx_suffix_with_spaces(self):
+        pattern = extract_pattern("SE LONDON VICTORIA SST,125.00 GBP, RATE 1.00/GBP ON 15-06-2025")
+        assert pattern == "SE LONDON VICTORIA SST"
+
     def test_preserves_simple_description(self):
         pattern = extract_pattern("GREGGS")
         assert pattern == "GREGGS"
