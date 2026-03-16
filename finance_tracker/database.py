@@ -7,6 +7,8 @@ from sqlalchemy import BinaryExpression
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, SQLModel, create_engine, select
 
+from finance_tracker.seeds import build_seed_rules
+
 DATA_DIR = Path.home() / ".finance-tracker"
 DB_PATH = DATA_DIR / "finance.db"
 
@@ -21,10 +23,15 @@ class DatabaseClient:
     @contextmanager
     def create(cls, db_path: Path = DB_PATH):
         DATA_DIR.mkdir(parents=True, exist_ok=True)
+        is_new_database = not db_path.exists()
         engine = create_engine(f"sqlite:///{db_path}")
         SQLModel.metadata.create_all(engine)
         with Session(engine) as session, session.begin():
-            yield cls(session)
+            client = cls(session)
+            if is_new_database:
+                for rule in build_seed_rules():
+                    client.add(rule)
+            yield client
 
     @classmethod
     @contextmanager
