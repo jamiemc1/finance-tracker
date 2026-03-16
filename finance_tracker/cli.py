@@ -24,17 +24,30 @@ console = Console()
 
 @app.command(name="import")
 def import_transactions(
-    file_path: Path = typer.Argument(..., help="Path to Santander TXT statement file"),
+    path: Path = typer.Argument(..., help="Path to Santander TXT file or directory of TXT files"),
     account: str = typer.Option(..., help="Account name (e.g. 'Everyday', 'Current')"),
 ) -> None:
     """Import transactions from a Santander TXT statement export."""
-    if not file_path.exists():
-        console.print(f"[red]File not found: {file_path}[/red]")
+    if not path.exists():
+        console.print(f"[red]Not found: {path}[/red]")
         raise typer.Exit(code=1)
 
-    transactions = parse_santander_txt(file_path, account)
+    if path.is_dir():
+        files = sorted(path.glob("*.txt"))
+        if not files:
+            console.print(f"[yellow]No .txt files found in {path}[/yellow]")
+            raise typer.Exit()
+    else:
+        files = [path]
+
+    transactions = []
+    for file in files:
+        parsed = parse_santander_txt(file, account)
+        transactions.extend(parsed)
+        console.print(f"  [dim]Parsed {len(parsed)} transactions from {file.name}[/dim]")
+
     if not transactions:
-        console.print("[yellow]No transactions found in file.[/yellow]")
+        console.print("[yellow]No transactions found.[/yellow]")
         raise typer.Exit()
 
     with DatabaseClient.create() as database:
@@ -62,6 +75,14 @@ def categorise() -> None:
         uncategorised = database.select_where(
             Transaction, Transaction.category == CategoryType.UNCATEGORISED
         )
+
+        if uncategorised:
+            matched, _ = apply_rules(database, uncategorised)
+            if matched:
+                console.print(f"[green]Auto-categorised {matched} transactions from rules[/green]")
+                uncategorised = [
+                    t for t in uncategorised if t.category == CategoryType.UNCATEGORISED
+                ]
 
         if not uncategorised:
             console.print("[green]No uncategorised transactions.[/green]")
