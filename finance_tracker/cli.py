@@ -86,7 +86,7 @@ def categorise() -> None:
 
         if not uncategorised:
             console.print("[green]No uncategorised transactions.[/green]")
-            raise typer.Exit()
+            return
 
         console.print(f"\n[bold]{len(uncategorised)} uncategorised transactions[/bold]\n")
 
@@ -123,7 +123,7 @@ def categorise() -> None:
 
             pattern = extract_pattern(transaction.description)
             console.print(f"  [dim]Rule: '{pattern}' → {selected_category.display_name}[/dim]")
-            if Confirm.ask("Create this rule?", default=True):
+            if Confirm.ask("Create this rule?", default=False):
                 create_rule_from_description(database, transaction.description, selected_category)
                 matched, _ = apply_rules(database, uncategorised)
                 if matched:
