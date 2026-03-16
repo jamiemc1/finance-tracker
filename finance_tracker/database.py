@@ -23,14 +23,12 @@ class DatabaseClient:
     @contextmanager
     def create(cls, db_path: Path = DB_PATH):
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        is_new_database = not db_path.exists()
         engine = create_engine(f"sqlite:///{db_path}")
         SQLModel.metadata.create_all(engine)
         with Session(engine) as session, session.begin():
             client = cls(session)
-            if is_new_database:
-                for rule in build_seed_rules():
-                    client.add(rule)
+            for rule in build_seed_rules():
+                client.add_if_new(rule)
             yield client
 
     @classmethod
