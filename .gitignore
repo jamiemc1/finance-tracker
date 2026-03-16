@@ -17,6 +17,10 @@ build/
 *.db
 data/
 
+# Coverage
+.coverage
+htmlcov/
+
 # Vim
 *.swp
 *.swo
