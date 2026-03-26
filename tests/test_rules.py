@@ -1,7 +1,13 @@
 from finance_tracker.categories import CategoryType
 from finance_tracker.database import DatabaseClient
 from finance_tracker.models import Rule
-from finance_tracker.rules import apply_rules, create_rule_from_description, extract_pattern
+from finance_tracker.rules import (
+    apply_rules,
+    create_rule_from_description,
+    extract_pattern,
+    match_counts,
+    reapply_rules,
+)
 
 from tests.conftest import make_rule, make_transaction
 
@@ -163,3 +169,94 @@ class TestCreateRuleFromDescription:
         assert result is None
         rules = database.select_all(Rule)
         assert len(rules) == 1
+
+
+class TestMatchCounts:
+    def test_counts_matching_transactions(self, database: DatabaseClient):
+        database.add(make_rule("TESCO", CategoryType.GROCERIES))
+        database.add(make_transaction(description="TESCO STORES", transaction_hash="h1"))
+        database.add(make_transaction(description="TESCO METRO", transaction_hash="h2"))
+        database.add(make_transaction(description="SAINSBURYS", transaction_hash="h3"))
+
+        rules = database.select_all(Rule)
+        counts = match_counts(database)
+        assert counts[rules[0].id] == 2
+
+    def test_zero_matches(self, database: DatabaseClient):
+        database.add(make_rule("WAITROSE", CategoryType.GROCERIES))
+        database.add(make_transaction(description="TESCO STORES"))
+
+        rules = database.select_all(Rule)
+        counts = match_counts(database)
+        assert counts[rules[0].id] == 0
+
+    def test_empty_database(self, database: DatabaseClient):
+        counts = match_counts(database)
+        assert counts == {}
+
+
+class TestReapplyRules:
+    def test_categorises_uncategorised_transactions(self, database: DatabaseClient):
+        database.add(make_rule("TESCO", CategoryType.GROCERIES))
+        database.add(make_transaction(description="TESCO STORES"))
+
+        applied, conflicts = reapply_rules(database)
+        assert len(applied) == 1
+        assert applied[0].category == CategoryType.GROCERIES
+
+    def test_reports_conflicts_without_changing(self, database: DatabaseClient):
+        database.add(make_rule("TESCO", CategoryType.GROCERIES))
+        database.add(
+            make_transaction(
+                description="TESCO STORES",
+                category=CategoryType.SHOPPING,
+            )
+        )
+
+        applied, conflicts = reapply_rules(database)
+        assert len(applied) == 0
+        assert len(conflicts) == 1
+        transaction, suggested = conflicts[0]
+        assert transaction.category == CategoryType.SHOPPING
+        assert suggested == CategoryType.GROCERIES
+
+    def test_ignores_matching_category(self, database: DatabaseClient):
+        database.add(make_rule("TESCO", CategoryType.GROCERIES))
+        database.add(
+            make_transaction(
+                description="TESCO STORES",
+                category=CategoryType.GROCERIES,
+            )
+        )
+
+        applied, conflicts = reapply_rules(database)
+        assert len(applied) == 0
+        assert len(conflicts) == 0
+
+    def test_mixed_transactions(self, database: DatabaseClient):
+        database.add(make_rule("TESCO", CategoryType.GROCERIES))
+        database.add(
+            make_transaction(
+                description="TESCO EXPRESS",
+                transaction_hash="h1",
+            )
+        )
+        database.add(
+            make_transaction(
+                description="TESCO METRO",
+                category=CategoryType.SHOPPING,
+                transaction_hash="h2",
+            )
+        )
+        database.add(
+            make_transaction(
+                description="UNKNOWN SHOP",
+                transaction_hash="h3",
+            )
+        )
+
+        applied, conflicts = reapply_rules(database)
+        assert len(applied) == 1
+        assert applied[0].description == "TESCO EXPRESS"
+        assert len(conflicts) == 1
+        assert conflicts[0][0].description == "TESCO METRO"
