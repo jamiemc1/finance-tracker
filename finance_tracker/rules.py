@@ -39,12 +39,15 @@ def create_rule_from_description(
     database: DatabaseClient,
     description: str,
     category: CategoryType,
-) -> Rule:
-    """Extract a keyword pattern from a description and save as a rule."""
+) -> Rule | None:
+    """Extract a keyword pattern from a description and save as a rule.
+
+    Returns None if a rule with the same pattern already exists.
+    """
     pattern = extract_pattern(description)
     rule = Rule(pattern=pattern, category=category, source="manual")
-    database.add(rule)
-    return rule
+    inserted = database.add_if_new(rule)
+    return rule if inserted else None
 
 
 def extract_pattern(description: str) -> str:
