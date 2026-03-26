@@ -65,15 +65,20 @@ def extract_pattern(description: str) -> str:
         r"STANDING ORDER TO\s+",
         r"SQ\s*\*\s*",
         r"SUMUP\s*\*\s*",
+        r"SP\s+\*\s*",
+        r"SP\s+",
     ]
     cleaned = description.strip()
     for prefix in prefixes_to_strip:
         cleaned = re.sub(f"^{prefix}", "", cleaned, flags=re.IGNORECASE)
 
-    reference_pattern = r"[,\s]+(REFERENCE|REF|MANDATE NO)\s+.*$"
-    cleaned = re.sub(reference_pattern, "", cleaned, flags=re.IGNORECASE)
-
-    fx_pattern = r"[,\s]+[\d.]+\s*GBP,\s*RATE\s+[\d./]+GBP\s+ON\s+[\d-]+$"
-    cleaned = re.sub(fx_pattern, "", cleaned, flags=re.IGNORECASE)
+    suffixes_to_strip = [
+        r"[,\s]+(REFERENCE|REF|MANDATE NO)\s+.*$",
+        r"[,\s]+[\d.]+\s*GBP,\s*RATE\s+[\d./]+GBP\s+ON\s+[\d-]+$",
+        r"\s*\(VIA\s+\w+\s+PAY\).*$",
+        r"\s+ON\s+\d{2}-\d{2}-\d{4}$",
+    ]
+    for suffix in suffixes_to_strip:
+        cleaned = re.sub(suffix, "", cleaned, flags=re.IGNORECASE)
 
     return cleaned.strip().rstrip(",")
