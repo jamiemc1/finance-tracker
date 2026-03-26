@@ -187,13 +187,13 @@ def rules_list(ctx: typer.Context) -> None:
         sorted_rules = sorted(all_rules, key=lambda r: counts.get(r.id, 0), reverse=True)
         for index, rule in enumerate(sorted_rules, 1):
             count = counts.get(rule.id, 0)
-            count_style = "red" if count == 0 else ""
+            count_display = f"[red]{count}[/red]" if count == 0 else str(count)
             table.add_row(
                 str(index),
                 rule.pattern,
                 rule.category.display_name,
                 rule.source,
-                f"[{count_style}]{count}[/{count_style}]",
+                count_display,
             )
 
         console.print(table)
