@@ -320,13 +320,8 @@ def edit() -> None:
         rule.category = new_category
         database.add(rule)
 
-        new_count = sum(
-            1
-            for transaction in database.select_all(Transaction)
-            if __import__("re").search(
-                rule.pattern, transaction.description, __import__("re").IGNORECASE
-            )
-        )
+        new_counts = match_counts(database)
+        new_count = new_counts.get(rule.id, 0)
         console.print(
             f"[green]Updated: '{rule.pattern}' → {rule.category.display_name} "
             f"({new_count} matches)[/green]"
