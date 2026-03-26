@@ -35,6 +35,54 @@ def _match_rules(description: str, rules: Sequence[Rule]) -> CategoryType | None
     return None
 
 
+def match_counts(database: DatabaseClient) -> dict[int, int]:
+    """Count how many transactions each rule matches. Returns {rule.id: count}."""
+    rules = database.select_all(Rule)
+    transactions = database.select_all(Transaction)
+    counts = {}
+    for rule in rules:
+        count = sum(
+            1
+            for transaction in transactions
+            if re.search(rule.pattern, transaction.description, re.IGNORECASE)
+        )
+        counts[rule.id] = count
+    return counts
+
+
+def reapply_rules(
+    database: DatabaseClient,
+) -> tuple[list[Transaction], list[tuple[Transaction, CategoryType]]]:
+    """Re-apply all rules to all transactions.
+
+    Uncategorised transactions that match a rule are categorised and committed.
+    Already-categorised transactions where a rule would assign a different category
+    are reported as conflicts but not changed.
+
+    Returns:
+        applied: transactions that were uncategorised and are now categorised
+        conflicts: (transaction, suggested_category) for categorised transactions
+                   where a rule suggests a different category
+    """
+    rules = database.select_all(Rule)
+    transactions = database.select_all(Transaction)
+
+    applied = []
+    conflicts = []
+
+    for transaction in transactions:
+        matched_category = _match_rules(transaction.description, rules)
+        if matched_category is None:
+            continue
+        if transaction.category == CategoryType.UNCATEGORISED:
+            transaction.category = matched_category
+            applied.append(transaction)
+        elif transaction.category != matched_category:
+            conflicts.append((transaction, matched_category))
+
+    return applied, conflicts
+
+
 def create_rule_from_description(
     database: DatabaseClient,
     description: str,
