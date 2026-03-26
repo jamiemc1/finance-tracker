@@ -103,6 +103,26 @@ class TestExtractPattern:
         pattern = extract_pattern("SE LONDON VICTORIA SST,125.00 GBP, RATE 1.00/GBP ON 15-06-2025")
         assert pattern == "SE LONDON VICTORIA SST"
 
+    def test_strips_apple_pay_suffix_with_date(self):
+        pattern = extract_pattern("MEGA MART (VIA APPLE PAY), ON 01-03-2023")
+        assert pattern == "MEGA MART"
+
+    def test_strips_google_pay_suffix(self):
+        pattern = extract_pattern("HARBOUR CAFE (VIA GOOGLE PAY), ON 15-06-2024")
+        assert pattern == "HARBOUR CAFE"
+
+    def test_strips_trailing_date_without_contactless(self):
+        pattern = extract_pattern("RIVER DELI   ON 01-03-2023")
+        assert pattern == "RIVER DELI"
+
+    def test_strips_shopify_sp_star_prefix(self):
+        pattern = extract_pattern("SP * ARTISAN FOODS")
+        assert pattern == "ARTISAN FOODS"
+
+    def test_strips_shopify_sp_prefix(self):
+        pattern = extract_pattern("SP BABY GEAR LTD   ON 06-03-2023")
+        assert pattern == "BABY GEAR LTD"
+
     def test_preserves_simple_description(self):
         pattern = extract_pattern("GREGGS")
         assert pattern == "GREGGS"
@@ -128,3 +148,18 @@ class TestCreateRuleFromDescription:
         rules = database.select_all(Rule)
         assert len(rules) == 1
         assert rules[0].pattern == "TESCO STORES"
+
+    def test_duplicate_pattern_returns_none(self, database: DatabaseClient):
+        create_rule_from_description(
+            database,
+            "CARD PAYMENT TO TESCO STORES",
+            CategoryType.GROCERIES,
+        )
+        result = create_rule_from_description(
+            database,
+            "CARD PAYMENT TO TESCO STORES",
+            CategoryType.SHOPPING,
+        )
+        assert result is None
+        rules = database.select_all(Rule)
+        assert len(rules) == 1
