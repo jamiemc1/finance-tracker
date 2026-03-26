@@ -9,7 +9,13 @@ from finance_tracker.categories import SPENDING_BUCKETS, CategoryType, spending_
 from finance_tracker.database import DatabaseClient
 from finance_tracker.ingest import parse_santander_txt
 from finance_tracker.models import Rule, Transaction
-from finance_tracker.rules import apply_rules, create_rule_from_description, extract_pattern
+from finance_tracker.rules import (
+    apply_rules,
+    create_rule_from_description,
+    extract_pattern,
+    match_counts,
+    reapply_rules,
+)
 from finance_tracker.visualise import (
     plot_budget_pie,
     plot_category_summary,
@@ -150,9 +156,16 @@ def categorise(
             console.print()
 
 
-@app.command()
-def rules() -> None:
-    """List all categorisation rules."""
+rules_app = typer.Typer(help="Manage categorisation rules")
+app.add_typer(rules_app, name="rules")
+
+
+@rules_app.callback(invoke_without_command=True)
+def rules_list(ctx: typer.Context) -> None:
+    """List all categorisation rules with match counts."""
+    if ctx.invoked_subcommand is not None:
+        return
+
     with DatabaseClient.create() as database:
         all_rules = database.select_all(Rule)
 
@@ -162,15 +175,189 @@ def rules() -> None:
             )
             raise typer.Exit()
 
+        counts = match_counts(database)
+
         table = Table(title="Categorisation Rules")
+        table.add_column("#", style="dim", justify="right")
         table.add_column("Pattern", style="cyan")
         table.add_column("Category", style="green")
         table.add_column("Source", style="dim")
+        table.add_column("Matches", justify="right")
 
-        for rule in all_rules:
-            table.add_row(rule.pattern, rule.category.display_name, rule.source)
+        sorted_rules = sorted(all_rules, key=lambda r: counts.get(r.id, 0), reverse=True)
+        for index, rule in enumerate(sorted_rules, 1):
+            count = counts.get(rule.id, 0)
+            count_style = "red" if count == 0 else ""
+            table.add_row(
+                str(index),
+                rule.pattern,
+                rule.category.display_name,
+                rule.source,
+                f"[{count_style}]{count}[/{count_style}]",
+            )
 
         console.print(table)
+
+        zero_match = sum(1 for count in counts.values() if count == 0)
+        if zero_match:
+            console.print(
+                f"\n[yellow]{zero_match} rules match no transactions. "
+                f"Use 'finance rules delete' to clean up.[/yellow]"
+            )
+
+
+@rules_app.command()
+def delete() -> None:
+    """Interactively delete rules."""
+    with DatabaseClient.create() as database:
+        all_rules = database.select_all(Rule)
+
+        if not all_rules:
+            console.print("[yellow]No rules to delete.[/yellow]")
+            raise typer.Exit()
+
+        counts = match_counts(database)
+        sorted_rules = sorted(all_rules, key=lambda r: counts.get(r.id, 0))
+
+        for index, rule in enumerate(sorted_rules, 1):
+            count = counts.get(rule.id, 0)
+            count_style = "red" if count == 0 else "dim"
+            console.print(
+                f"  {index:3d}. {rule.pattern}  → {rule.category.display_name}  "
+                f"[{count_style}]({count} matches)[/{count_style}]"
+            )
+
+        console.print()
+        selection = Prompt.ask("Rule number(s) to delete (comma-separated, or 'q' to quit)")
+
+        if selection.lower() == "q":
+            return
+
+        try:
+            indices = [int(s.strip()) for s in selection.split(",")]
+        except ValueError:
+            console.print("[red]Invalid input.[/red]")
+            return
+
+        to_delete = []
+        for index in indices:
+            if 1 <= index <= len(sorted_rules):
+                to_delete.append(sorted_rules[index - 1])
+            else:
+                console.print(f"[red]Invalid rule number: {index}[/red]")
+                return
+
+        console.print()
+        for rule in to_delete:
+            console.print(f"  [red]- {rule.pattern} → {rule.category.display_name}[/red]")
+
+        if not Confirm.ask(f"\nDelete {len(to_delete)} rule(s)?", default=False):
+            return
+
+        for rule in to_delete:
+            database.delete(rule)
+        console.print(f"[green]Deleted {len(to_delete)} rule(s).[/green]")
+
+
+@rules_app.command()
+def edit() -> None:
+    """Interactively edit a rule's pattern or category."""
+    with DatabaseClient.create() as database:
+        all_rules = database.select_all(Rule)
+
+        if not all_rules:
+            console.print("[yellow]No rules to edit.[/yellow]")
+            raise typer.Exit()
+
+        counts = match_counts(database)
+        sorted_rules = sorted(all_rules, key=lambda r: (r.category.display_name, r.pattern))
+
+        for index, rule in enumerate(sorted_rules, 1):
+            count = counts.get(rule.id, 0)
+            console.print(
+                f"  {index:3d}. {rule.pattern}  → {rule.category.display_name}  "
+                f"[dim]({count} matches)[/dim]"
+            )
+
+        console.print()
+        selection = Prompt.ask("Rule number to edit (or 'q' to quit)")
+
+        if selection.lower() == "q":
+            return
+
+        try:
+            index = int(selection)
+        except ValueError:
+            console.print("[red]Invalid input.[/red]")
+            return
+
+        if not 1 <= index <= len(sorted_rules):
+            console.print("[red]Invalid rule number.[/red]")
+            return
+
+        rule = sorted_rules[index - 1]
+        console.print(f"\n  Pattern:  [cyan]{rule.pattern}[/cyan]")
+        console.print(f"  Category: [green]{rule.category.display_name}[/green]\n")
+
+        new_pattern = Prompt.ask("New pattern", default=rule.pattern)
+
+        category_list = list(CategoryType)
+        _display_category_menu(category_list)
+        current_index = category_list.index(rule.category) + 1
+        category_choice = Prompt.ask("New category number", default=str(current_index))
+
+        try:
+            new_category = category_list[int(category_choice) - 1]
+        except ValueError, IndexError:
+            console.print("[red]Invalid category.[/red]")
+            return
+
+        if new_pattern == rule.pattern and new_category == rule.category:
+            console.print("[dim]No changes.[/dim]")
+            return
+
+        rule.pattern = new_pattern
+        rule.category = new_category
+        database.add(rule)
+
+        new_count = sum(
+            1
+            for transaction in database.select_all(Transaction)
+            if __import__("re").search(
+                rule.pattern, transaction.description, __import__("re").IGNORECASE
+            )
+        )
+        console.print(
+            f"[green]Updated: '{rule.pattern}' → {rule.category.display_name} "
+            f"({new_count} matches)[/green]"
+        )
+
+
+@rules_app.command()
+def apply() -> None:
+    """Re-apply all rules to transactions."""
+    with DatabaseClient.create() as database:
+        applied, conflicts = reapply_rules(database)
+
+        if applied:
+            console.print(f"[green]Categorised {len(applied)} uncategorised transactions:[/green]")
+            for transaction in applied:
+                _display_transaction(transaction)
+                console.print(f"    → [green]{transaction.category.display_name}[/green]")
+        else:
+            console.print("[dim]No uncategorised transactions matched any rules.[/dim]")
+
+        if conflicts:
+            console.print(
+                f"\n[yellow]{len(conflicts)} already-categorised transactions "
+                f"would change:[/yellow]"
+            )
+            for transaction, suggested in conflicts:
+                _display_transaction(transaction)
+                console.print(
+                    f"    [dim]current:[/dim] {transaction.category.display_name}"
+                    f"  [dim]→ rule suggests:[/dim] [yellow]{suggested.display_name}[/yellow]"
+                )
 
 
 @app.command()
