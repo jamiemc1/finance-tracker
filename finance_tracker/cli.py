@@ -69,7 +69,9 @@ def import_transactions(
 
 
 @app.command()
-def categorise() -> None:
+def categorise(
+    auto_rules: bool = typer.Option(True, help="Default to yes when prompted to create rules"),
+) -> None:
     """Interactively categorise uncategorised transactions."""
     with DatabaseClient.create() as database:
         uncategorised = database.select_where(
@@ -126,17 +128,24 @@ def categorise() -> None:
 
             pattern = extract_pattern(transaction.description)
             console.print(f"  [dim]Rule: '{pattern}' → {selected_category.display_name}[/dim]")
-            if Confirm.ask("Create this rule?", default=False):
-                create_rule_from_description(database, transaction.description, selected_category)
-                remaining = [t for t in uncategorised if t.category == CategoryType.UNCATEGORISED]
-                matched, _ = apply_rules(database, remaining)
-                for matched_transaction in remaining:
-                    if matched_transaction.category != CategoryType.UNCATEGORISED:
-                        database.add(matched_transaction)
-                if matched:
-                    console.print(f"  [dim]Rule saved — auto-categorised {matched} more[/dim]")
+            if Confirm.ask("Create this rule?", default=auto_rules):
+                rule = create_rule_from_description(
+                    database, transaction.description, selected_category
+                )
+                if rule is None:
+                    console.print("  [dim]Rule already exists[/dim]")
                 else:
-                    console.print("  [dim]Rule saved[/dim]")
+                    remaining = [
+                        t for t in uncategorised if t.category == CategoryType.UNCATEGORISED
+                    ]
+                    matched, _ = apply_rules(database, remaining)
+                    for matched_transaction in remaining:
+                        if matched_transaction.category != CategoryType.UNCATEGORISED:
+                            database.add(matched_transaction)
+                    if matched:
+                        console.print(f"  [dim]Rule saved — auto-categorised {matched} more[/dim]")
+                    else:
+                        console.print("  [dim]Rule saved[/dim]")
 
             console.print()
 
